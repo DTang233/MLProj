@@ -9,7 +9,7 @@ def read_dataset1 ():
 		ls = list(line.split(" "))
 		ls = [float(i) for i in ls]
 		data.append(ls)
-	X = [[ls[:-1]] for ls in data]
+	X = [ls[:-1] for ls in data]
 	y = [ls[-1] for ls in data]
 	return (X, y)
 
@@ -27,6 +27,6 @@ def read_dataset2 ():
 		ls = list(line.split(" "))
 		ls = [float(i) for i in ls]
 		data.append(ls)
-	X = [[ls[:-1]] for ls in data]
+	X = [ls[:-1] for ls in data]
 	y = [ls[-1] for ls in data]
 	return (X, y)
