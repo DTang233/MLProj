@@ -4,6 +4,9 @@ from sklearn.metrics import average_precision_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import plot_precision_recall_curve
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from sklearn import tree
 
 import matplotlib.pyplot as plt
@@ -33,11 +36,17 @@ def ten_fold_cross_validation(X, y, algo, params):
 	#Decide which classifier to use
 	if algo == 'Logistic Regression':
 		clf = LogisticRegression(random_state=0)
-	if algo = 'knn':
+	if algo == 'Knn':
 		clf = KNeighborsClassifier(n_neighbors=params)
+	if algo == 'SVM':
+		#TODO: what does this mean
+		clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+	if algo == 'Decision Tree':
+		clf = tree.DecisionTreeClassifier()
 
 
 	kf = KFold(n_splits=10)
+	i = 0
 	for train_index, test_index in kf.split(X):
 	# 	print("TRAIN:", train_index, "TEST:", test_index)
 		X_train = X[train_index]
@@ -46,20 +55,15 @@ def ten_fold_cross_validation(X, y, algo, params):
 		y_test = y[test_index]
 		
 		clf.fit(X_train, y_train)
-		y_score = clf.decision_function(X_test)
-		average_precision = average_precision_score(y_test, y_score)
-
-		print('Average precision-recall score: {0:0.2f}'.format(average_precision))
-
 		disp = plot_precision_recall_curve(clf, X_test, y_test)
-		disp.ax_.set_title('2-class Precision-Recall curve: ''AP={0:0.2f}'.format(average_precision))
-		plt.show()
-
-
+		disp.ax_.set_title('2-class Precision-Recall curve: ')
+		plt.savefig(algo+ str(i) +'.png')
+		i+=1
 
 
 if __name__ == '__main__':
-	ten_fold_cross_validation(X1, y1, 'Logistic Regression', None)
+	ten_fold_cross_validation(X1, y1, 'SVM', None)
+	# ten_fold_cross_validation(X1, y1, 'Knn', 3)
 
 
 
