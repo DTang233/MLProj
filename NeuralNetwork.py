@@ -30,7 +30,11 @@ for i in range(0,10000):
 
 #Build the model
 model=Sequential()
-#layer 1 settings, such as neuron numbers, weight and bias initialization, activation function
+#There will two hidden layers and one output layer.
+#For two hidden layers, we can set neuron numbers, weight and bias initialization, activation function
+#We set output layer to use softmax
+
+#layer 1 settings
 model.add(Dense(128, activation='sigmoid',kernel_initializer='random_normal',bias_initializer='zeros',input_dim=784))
 #layer 2 settings
 model.add(Dense(64, kernel_initializer='random_normal',bias_initializer='zeros',activation='sigmoid'))
