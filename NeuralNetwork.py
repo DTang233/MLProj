@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.utils import to_categorical
-
+from tensorflow import keras
+#from mlxtend.evaluate import bias_variance_decomp
+from sklearn.metrics import mean_squared_error
+tf.compat.v1.enable_eager_execution()
 
 def createArray(row,col,input,idx):
     output=np.zeros((row,col))
@@ -14,10 +17,21 @@ def createArray(row,col,input,idx):
             output[i][j]=input[i][idx][j]
     return output
 
+#To change: parameter settings
+Learning_Rate=0.01
+Hidden_layer1_neurons=512
+Hidden_layer2_neurons=128
+W1='random_uniform'
+W2='random_uniform'
+B1='zeros'
+B2='zeros'
+print(W1)
+print(B1)
 #Data Initialization
 training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
 training_data = list(training_data)
 test_data = list(test_data) 
+
 
 #Initialize data 
 x_train=createArray(50000,28*28,training_data,0) # shape(50000 x 784)
@@ -35,18 +49,20 @@ model=Sequential()
 #We set output layer to use softmax
 
 #layer 1 settings
-model.add(Dense(128, activation='sigmoid',kernel_initializer='random_normal',bias_initializer='zeros',input_dim=784))
+model.add(Dense(Hidden_layer1_neurons, activation='sigmoid',kernel_initializer=W1,bias_initializer=B1,input_dim=784))
 #layer 2 settings
-model.add(Dense(64, kernel_initializer='random_normal',bias_initializer='zeros',activation='sigmoid'))
+model.add(Dense(Hidden_layer2_neurons, kernel_initializer=W2,bias_initializer=B2,activation='sigmoid'))
 #output layer settings
 model.add(Dense(10, activation='softmax'))
 print("model created successful")
+opt=keras.optimizers.Adam(learning_rate=Learning_Rate)
 
 #Compile the model
 model.compile(
-    optimizer='adam',
-    loss='categorical_crossentropy',
-    metrics=['accuracy']
+    optimizer=opt,
+    loss='categorical_crossentropy', # cross entropy loss
+    metrics=['accuracy'],
+    
 )
 print("compile model successful")
 
@@ -57,10 +73,48 @@ model.fit(
     epochs=5, # will run 500000 data for 5 times
     batch_size=32 
 )
-print("evaluate test")
+#mse=mean_squared_error(model.predict(x_test), y_test)
+#print("mean squared error is%f"%mse)
 
+print("evaluate test")
 #evaluate the model on 10000 data
 model.evaluate(
     x_test,
     y_test  
 )
+
+pred_train_ = (model.predict(x_train) > 0.5).astype("int32") # prediction result of trainning data 
+pred_test_ = (model.predict(x_test) > 0.5).astype("int32")# prediction result of test data 
+
+#Convert prediction from form [1,0,0,0,0,0,0,0,0,0] to 0
+true_train=np.zeros((50000,1))
+true_train=true_train.astype(np.int32) 
+pred_train=np.zeros((50000,1)) 
+pred_train=pred_train.astype(np.int32) 
+pred_test=np.zeros((10000,1))
+pred_test=pred_test.astype(np.int32) 
+true_test=np.zeros((10000,1))
+true_test=true_test.astype(np.int32) 
+for i in range(50000):
+    for j in range(10):
+        if y_train[i][j]==1:
+            true_train[i]=j
+        if pred_train_[i][j]==1:
+            pred_train[i]=j
+
+for i in range(10000):
+    for j in range(10):
+        if y_test[i][j]==1:
+            true_test[i]=j
+        if pred_test_[i][j]==1:
+            pred_test[i]=j
+
+#calculation of bias and variance
+
+#mean squared error
+main_predictions = np.mean(pred_test, axis=0)
+avg_bias_mse = np.sum((main_predictions - true_test)**2) /10000
+avg_var_mse = np.sum((main_predictions - pred_test)**2) / 10000
+print("bias=%f"%avg_bias_mse )
+print("variance=%f"%avg_var_mse)
+
