@@ -23,5 +23,3 @@ clf2_boosting = AdaBoostClassifier(
     n_estimators=200
 )
 clf2_boosting.fit(X2, y2)
-
-#print(clf1_boosting.predict(X1[:10, :]))
