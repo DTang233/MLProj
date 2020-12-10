@@ -1,5 +1,7 @@
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import plot_precision_recall_curve
@@ -12,18 +14,19 @@ from sklearn.metrics import auc
 from sklearn.metrics import roc_curve
 from sklearn.svm import SVC
 from sklearn import tree
+from sklearn import svm
 
 import matplotlib.pyplot as plt
 from util import *
 import numpy as np
+from mlxtend.evaluate import bias_variance_decomp
 
 
 X1, y1 = read_dataset ("project3_dataset1.txt")
 X2, y2 = read_dataset ("project3_dataset2.txt")
 
 def ten_fold_cross_validation(X, y, algo, params):
-#Accuracy, Precision, Recall, F-1 measure, and AUC (area under
-#the curve)
+
 	
 	"""
 	Here we divided X into 10 sets, 9/10 of the data are 
@@ -35,18 +38,26 @@ def ten_fold_cross_validation(X, y, algo, params):
 
 	- X2 is a (462, 9) numpy array, 
 	- y2 is a (462, ) array
+
+	We are going to calculate Accuracy, Precision, Recall, F-1 measure, and AUC (area under
+	the curve) for each model.
 	"""
 
 	#Decide which classifier to use
 	if algo == 'Logistic Regression':
-		clf = LogisticRegression(random_state=0)
+		clf = LogisticRegression(penalty='l2',random_state=0)
 	if algo == 'Knn':
 		clf = KNeighborsClassifier(n_neighbors=params)
 	if algo == 'SVM':
-		#TODO: what does this mean
-		clf = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+		clf = make_pipeline(StandardScaler(), SVC(kernel = 'sigmoid', gamma='auto'))
 	if algo == 'Decision Tree':
-		clf = tree.DecisionTreeClassifier()
+		#default criteria is gini
+		clf = tree.DecisionTreeClassifier(splitter = 'random')
+		if params and params[0] == 'AdaBoost':
+			clf = AdaBoostClassifier(clf, learning_rate = 0.5, n_estimators=params[1])
+	if algo == 'Random Forest':
+		clf = RandomForestClassifier(n_estimators = 50, max_depth=2, random_state=0)
+
 
 	cv_nums = 10
 	kf = KFold(n_splits=cv_nums)
@@ -54,8 +65,15 @@ def ten_fold_cross_validation(X, y, algo, params):
 	training_accuracys = []
 	test_accuracys = []
 	AUCs = []
+	#mse
+	errors = []
+	#bias
+	biases = []
+	#variances
+	variances = []
+
 	for train_index, test_index in kf.split(X):
-	# 	print("TRAIN:", train_index, "TEST:", test_index)
+
 		X_train = X[train_index]
 		y_train = y[train_index]
 		X_test = X[test_index]
@@ -65,27 +83,22 @@ def ten_fold_cross_validation(X, y, algo, params):
 		y_pred_train = clf.predict(X_train)
 		y_pred_test = clf.predict(X_test)
 		
-		#precision, recall and AUC for the test data
-		disp = plot_precision_recall_curve(clf, X_test, y_test)
-		y_scores = clf.predict_proba(X_test)
-		precision, recall, thresholds = roc_curve(y_test, y_pred_test)
 
-		#f1 score of the train data
+		disp = plot_precision_recall_curve(clf, X_test, y_test)
+		precision, recall, thresholds = roc_curve(y_test, y_pred_test)
 		f1_score_train = f1_score(y_train, y_pred_train, average='micro')
-		#f1 score of the test data
 		f1_score_test = f1_score(y_test, y_pred_test, average='micro')
 		
 		AUCs.append(auc(recall, precision))
+		mse, bias, var = bias_variance_decomp(clf, X_train, y_train, X_test, y_test, loss='mse', num_rounds=200, random_seed=1)	
+		errors.append(mse)
+		biases.append(bias)
+		variances.append(var)	
 
-
-		#get accuracy for training data
 		training_accuracys.append([accuracy_score(y_train, y_pred_train),f1_score_train])
-		#get accuracy for tests data
 		test_accuracys.append([accuracy_score(y_test, y_pred_test),f1_score_test])
 
 		disp.ax_.set_title('Iteration'+str(i) +' 2-class Precision-Recall curve: ')
-		
-
 		plt.savefig(algo+ str(i) +'.png')
 		i+=1
 	
@@ -101,14 +114,24 @@ def ten_fold_cross_validation(X, y, algo, params):
 		print(test_accuracys[j][1])
 		print('Testing AUC: ')
 		print(AUCs[j])
-
-
+		print('MSE: ' + str(errors[j]))
+		print('Bias: ' + str(biases[j]))
+		print('Variance: ' + str(variances[j]))
+	
+		# summarize results
+	print('Average MSE: ' + str(sum(errors)/len(errors)))
+	print('Average Bias: ' + str(sum(biases)/len(biases)))
+	print('Average Variance: ' + str(sum(variances)/len(variances)))
 
 
 if __name__ == '__main__':
-	ten_fold_cross_validation(X1, y1, 'Logistic Regression', None)
+	# ten_fold_cross_validation(X2, y2, 'Logistic Regression', None)
 	# ten_fold_cross_validation(X1, y1, 'SVM', None)
-	# ten_fold_cross_validation(X1, y1, 'Knn', 3)
+	# ten_fold_cross_validation(X2, y2, 'Knn', 10)
+	# params = ['AdaBoost',100]
+	ten_fold_cross_validation(X1, y1, 'Decision Tree', None)
+	# ten_fold_cross_validation(X2, y2, 'Random Forest', None)
+
 
 
 
